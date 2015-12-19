@@ -64,10 +64,10 @@ module Ints : Arith = struct
 end
 module ExtendArith (A : Arith) = struct
   include A
-  include Pervasives
   let rec of_int (a:int) : A.t =  A.(if a = 0 then zero else one + of_int (a - 1))
   let (-) a b = A.(+) a (A.(~-) b)
 end
+module ExtendInts = ExtendArith(Ints)
 
 (* Exercise: use "include" to reimplement Ints using only 3 lines
   (hint: what module already defines (+), (~-), etc.?): *)
@@ -85,11 +85,63 @@ the definitions of the module being extended. *)
 type Arith and produces a module that implements Arith using fractions.
 The produced modules should also include a (/) function for division: *)
 module Fractions (A : Arith) = struct
-  let t = A.t*A.t
-  let rec of_int (a:int) : A.t =  A.(if a = 0 then zero else one + of_int (a - 1))
+  type t = A.t * A.t
+  let zero = (A.zero,A.one)
+  let one = (A.one,A.one)
+  let (+) a b = let a1 = fst a in
+                  let a2 = snd a in
+                  let b1 = fst b in
+                  let b2 = snd b in
+                  (A.(a1 * b2 + b1 * a2), A.(a2 * b2))
+  let ( * ) a b = let a1 = fst a in
+                  let a2 = snd a in
+                  let b1 = fst b in
+                  let b2 = snd b in
+                  (A.(a1 * b1), A.(a2 * b2))
+  let (~-) a = (A.(-(fst a)),snd a)
+  let (/) a b = let a1 = fst a in
+                  let a2 = snd a in
+                  let b1 = fst b in
+                  let b2 = snd b in
+                  (A.(a1 * b2), A.(a2 * b1))
 
-  let (/) a b = (a,b)
+  let to_string a = (A.to_string (fst a))^"/"^(A.to_string (snd a))
 end
+
+module Rationals = Fractions(Ints)
+
+let half    = Rationals.(one / (one + one))
+let quarter = Rationals.(half * half)
+
+module ExtendedRationals = ExtendArith(Rationals)
+
+(* .mli files *)
+module Foo : sig
+  val x : int
+  val f : int -> int -> int
+end = struct
+  let x = 0
+  let y = 12
+  let f x y = x + y
+end
+(* Exercise: With this definition of Foo,
+what is Foo.x?
+-Ans: Foo.x = 0
+What is Foo.y?
+-Ans: Foo.y = 12
+*)
+
+(* Exercise: Split your implementations of Arith into several files:
+
+arith.ml and arith.mli should contain the common infrastructure for Arith:
+the module type and the ExtendArith functor.
+
+ints.ml, ints.mli, floats.ml and floats.mli should contain the
+implementations of Ints and Floats
+
+fractions.ml and fractions.mli should contain the implementation of the
+Fractions functor as well as the definition of the Rationals module.
+*)
 
 
 
